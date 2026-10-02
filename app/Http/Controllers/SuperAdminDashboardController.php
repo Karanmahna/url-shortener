@@ -11,6 +11,7 @@ class SuperAdminDashboardController extends Controller
 {
     public function index(): View
     {
+        // Fetch companies along with their admin users, counts, and sums
         $companies = Company::whereHas('users', function ($query) {
             $query->where('role', User::ROLE_ADMIN);
         })
@@ -40,5 +41,37 @@ class SuperAdminDashboardController extends Controller
             'shortUrls',
             'totalUrlHits'
         ));
+    }
+
+    public function viewAll($type)
+    {
+        if ($type === 'clients') {
+            $items = Company::with([ // Fetch companies with their admin users, counts, and sums
+                    'users' => function ($query) {
+                        $query->where('role', 'admin');
+                    }
+                ])
+                ->withCount(['users', 'shortUrls'])
+                ->withSum('shortUrls', 'hits')
+                ->whereHas('users', function ($query) {
+                    $query->where('role', 'admin');
+                })
+                ->get();
+
+            $title = 'All Clients';
+        } elseif ($type === 'urls') {
+            $items = ShortUrl::with(['company', 'user'])
+                ->get();
+
+            $title = 'All Generated URLs';
+        } else {
+            abort(404);
+        }
+            
+        return view('members', [
+            'items' => $items,
+            'type' => $type,
+            'title' => $title,
+        ]);
     }
 }

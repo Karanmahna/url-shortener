@@ -26,6 +26,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])
         ->name('logout');
     
+    //super_admin routes
     Route::middleware(['auth', 'role:super_admin'])->group(function () {
         Route::get(
             '/superadmin/invite-client',
@@ -34,10 +35,27 @@ Route::middleware('auth')->group(function () {
 
         Route::post(
             '/superadmin/invite-client',
-            [InvitationController::class, 'inviteClient']
+            [InvitationController::class, 'sendInvitation']
         )->name('superadmin.invite-client.store');
     });
+    
+    Route::middleware(['auth', 'role:super_admin'])
+    ->prefix('super-admin')
+    ->group(function () {
+        Route::get('/superadmin/view-all/{type}', [SuperAdminDashboardController::class, 'viewAll'])
+        ->name('superadmin.view-all');
+        Route::get('/companies', [CompanyController::class, 'index'])
+            ->name('companies.index');
 
+        Route::post('/companies', [CompanyController::class, 'store'])
+            ->name('companies.store');
+    });
+
+    Route::middleware(['auth', 'role:super_admin'])
+    ->get('/superadmin/dashboard', [SuperAdminDashboardController::class, 'index'])
+    ->name('superadmin.dashboard');
+
+    // Admin routes
     Route::middleware(['auth', 'role:admin'])
     ->get('/admin/dashboard', [AdminDashboardController::class, 'index'])
     ->name('admin.dashboard');
@@ -49,13 +67,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/invite-team', [InvitationController::class, 'createTeam'])
             ->name('invite-team');
 
-        Route::post('/invite-team', [InvitationController::class, 'inviteTeam'])
+        Route::post('/invite-team', [InvitationController::class, 'sendInvitation'])
             ->name('invite-team.store');
     });
 
     Route::middleware(['auth', 'role:admin,member'])->group(function () {
         Route::get('/members', [TeamController::class, 'index'])
-        ->name('admin.team.index');
+        ->name('members');
+
+        Route::get('/members/url', [TeamController::class, 'show'])
+            ->name('members/url');
 
         Route::get('/create-urls', [ShortUrlController::class, 'create'])
             ->name('create-urls');
@@ -64,20 +85,13 @@ Route::middleware('auth')->group(function () {
             ->name('urls.store');
     });
     
+    // Member routes
     Route::middleware(['auth', 'role:member'])->group(function () {
         Route::get('/member/dashboard', [DashboardController::class, 'member'])
             ->name('member.dashboard');
     });
 
-    Route::middleware(['auth', 'role:super_admin'])
-    ->prefix('super-admin')
-    ->group(function () {
-        Route::get('/companies', [CompanyController::class, 'index'])
-            ->name('companies.index');
-
-        Route::post('/companies', [CompanyController::class, 'store'])
-            ->name('companies.store');
-    });
+    // Invitation routes
     Route::post('/invitations', [InvitationController::class, 'store'])
     ->name('invitations.store');
     Route::get('/invitations/{token}', [InvitationController::class, 'showAccept'])
@@ -85,9 +99,6 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/invitations/{token}', [InvitationController::class, 'accept'])
     ->name('invitations.accept.submit');
-    Route::middleware(['auth', 'role:super_admin'])
-    ->get('/superadmin/dashboard', [SuperAdminDashboardController::class, 'index'])
-    ->name('superadmin.dashboard');
 });
 
 Route::get('/s/{shortCode}', [ShortUrlController::class, 'redirect'])

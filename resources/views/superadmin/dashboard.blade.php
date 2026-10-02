@@ -29,27 +29,9 @@
                     value="{{ session('invitation_url') }}"
                     readonly
                 >
-
-                <button
-                    class="btn btn-outline-primary"
-                    type="button"
-                    onclick="copyInvitationLink()"
-                >
-                    Copy
-                </button>
             </div>
         </div>
     @endif
-
-    <script>
-        function copyInvitationLink() {
-            const input = document.getElementById('invitationLink');
-            input.select();
-            input.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(input.value);
-        }
-    </script>
-
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Super Admin Dashboard</h2>
 
@@ -102,11 +84,16 @@
 
             {{ $companies->links() }}
         </div>
+        <div class="card-footer d-flex">
+            <a href="{{ route('superadmin.view-all', 'clients') }}" class="btn btn-outline-secondary btn-sm">
+                View All Clients
+            </a>
+        </div>
     </div>
 
     {{-- Generated URLs --}}
     <div class="card shadow-sm">
-        <div class="card-header bg-white">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Generated Short URLs</h5>
         </div>
 
@@ -117,6 +104,7 @@
                         <tr>
                             <th>Short URL</th>
                             <th>Long URL</th>
+                            <th>Hits</th>
                             <th>Client</th>
                             <th>Created On</th>
                         </tr>
@@ -131,12 +119,13 @@
                                 <td class="text-break">
                                     {{ $url->original_url }}
                                 </td>
+                                <td>{{ $url->hits ?? 0 }}</td>
                                 <td>{{ $url->company->name ?? 'N/A' }}</td>
                                 <td>{{ $url->created_at->format('d M Y') }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center">
+                                <td colspan="5" class="text-center">
                                     No short URLs found.
                                 </td>
                             </tr>
@@ -144,11 +133,13 @@
                     </tbody>
                 </table>
             </div>
-
-            {{ $shortUrls->links() }}
+            <div class="card-footer d-flex">
+                <a href="{{ route('superadmin.view-all', 'urls') }}" class="btn btn-outline-secondary btn-sm">
+                    View All URLs
+                </a>
+            </div>
         </div>
     </div>
-
 </div>
 </body>
 </html>

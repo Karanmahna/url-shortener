@@ -20,7 +20,7 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (Auth::attempt($credentials)) {
+        if (Auth::attempt($credentials)) {  // Verify the user's credentials
             $request->session()->regenerate();
 
             $user = Auth::user();

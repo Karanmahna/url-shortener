@@ -11,10 +11,16 @@
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-5">
+            <h1 class="text-center mb-4 text-danger">URL Shortener</h1>
             <div class="card shadow">
                 <div class="card-body">
                     <h3 class="text-center mb-4">Login</h3>
 
+                    @if (session('success'))
+                        <div class="alert alert-success">
+                            {{ session('success') }}
+                        </div>
+                    @endif
                     @if ($errors->any())
                         <div class="alert alert-danger">
                             {{ $errors->first() }}

@@ -18,34 +18,74 @@ class InvitationController extends Controller
         return view('superadmin.invite-client');
     }
 
-    public function inviteClient(Request $request)
+    public function sendInvitation(Request $request)
     {
-        abort_unless(
-            auth()->user()->role === User::ROLE_SUPER_ADMIN,
+        $inviter = auth()->user();
+        abort_unless( // Ensure only super admins and admins can send invitations
+            in_array($inviter->role, [
+                User::ROLE_SUPER_ADMIN,
+                User::ROLE_ADMIN,
+            ]),
             403
         );
-
+        $isSuperAdmin = $inviter->role === User::ROLE_SUPER_ADMIN;
+        // Validations based on who is sending the invitation
         $validated = $request->validate([
-            'company_name' => 'required|string|max:255',
+            'company_name' => $isSuperAdmin
+                ? 'required|string|max:255'
+                : 'nullable|string|max:255',
+
             'email' => 'required|email|max:255',
+
+            'role' => $isSuperAdmin
+                ? 'nullable'
+                : 'required|in:admin,member',
         ]);
 
+        // Check if existing user
         if (User::where('email', $validated['email'])->exists()) {
             return back()
-                ->withErrors(['email' => 'This email already has an account.'])
+                ->withErrors([
+                    'email' => 'This email already has an account.',
+                ])
                 ->withInput();
         }
 
-        $invitation = DB::transaction(function () use ($validated) {
-            $company = Company::create([
-                'name' => $validated['company_name'],
-            ]);
+        // Prevent duplicate rec
+        $pendingInvitation = Invitation::where('email', $validated['email'])
+            ->whereNull('accepted_at')
+            ->where('expires_at', '>', now())
+            ->exists();
 
-            return Invitation::create([
-                'company_id' => $company->id,
-                'invited_by' => auth()->id(),
+        if ($pendingInvitation) {
+            return back()
+                ->withErrors([
+                    'email' => 'An active invitation already exists for this email.',
+                ])
+                ->withInput();
+        }
+
+        $invitation = DB::transaction(function () use (
+            $validated,
+            $inviter,
+            $isSuperAdmin
+        ) {
+            $companyId = $isSuperAdmin
+                ? Company::create([
+                    'name' => $validated['company_name'],
+                ])->id
+                : $inviter->company_id;
+
+            // Check invited role
+            $role = $isSuperAdmin
+                ? User::ROLE_ADMIN
+                : $validated['role'];
+
+            return Invitation::create([ // Store the invitation in the database
+                'company_id' => $companyId,
+                'invited_by' => $inviter->id,
                 'email' => $validated['email'],
-                'role' => User::ROLE_ADMIN,
+                'role' => $role,
                 'token' => Str::random(64),
                 'expires_at' => now()->addDays(7),
             ]);
@@ -55,10 +95,19 @@ class InvitationController extends Controller
             'token' => $invitation->token,
         ]);
 
+        // Redirect according to inviter role
+        $dashboardRoute = $isSuperAdmin
+            ? 'superadmin.dashboard'
+            : 'admin.dashboard';
+
+        $successMessage = $isSuperAdmin
+            ? 'Client invitation created successfully.'
+            : 'Team invitation created successfully.';
+
         return redirect()
-            ->route('superadmin.dashboard')
-            ->with('invitation_url', $invitationUrl)
-            ->with('success', 'Client invitation created successfully.');
+            ->route($dashboardRoute)
+            ->with('success', $successMessage)
+            ->with('invitation_url', $invitationUrl);
     }
 
     public function showAccept(string $token)
@@ -76,6 +125,7 @@ class InvitationController extends Controller
 
     public function accept(Request $request, $token)
     {
+        // Validate invitation token and ensure it hasn't been accepted
         $invitation = Invitation::where('token', $token)
             ->whereNull('accepted_at')
             ->firstOrFail();
@@ -91,7 +141,7 @@ class InvitationController extends Controller
             'password' => 'required|string|min:8|confirmed',
         ]);
 
-        $user = User::create([
+        $user = User::create([ // Create the new user
             'name' => $request->name,
             'email' => $invitation->email,
             'password' => Hash::make($request->password),
@@ -102,57 +152,17 @@ class InvitationController extends Controller
         $invitation->update([
             'accepted_at' => now(),
         ]);
+        Auth::logout();
 
-        return redirect()->route('login')
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect()
+            ->route('login')
             ->with('success', 'Registration successful. Please log in.');
     }
+    
     public function createTeam()
     {
         return view('admin.invite-team');
-    }
-
-    public function inviteTeam(Request $request)
-    {
-        $admin = auth()->user();
-
-        $validated = $request->validate([
-            'email' => 'required|email|max:255',
-            'role' => 'required|in:admin,member',
-        ]);
-
-        if (User::where('email', $validated['email'])->exists()) {
-            return back()
-                ->withErrors(['email' => 'This email already has an account.'])
-                ->withInput();
-        }
-
-        $pendingInvitation = Invitation::where('email', $validated['email'])
-            ->whereNull('accepted_at')
-            ->where('expires_at', '>', now())
-            ->exists();
-
-        if ($pendingInvitation) {
-            return back()
-                ->withErrors(['email' => 'An active invitation already exists for this email.'])
-                ->withInput();
-        }
-
-        $invitation = Invitation::create([
-            'company_id' => $admin->company_id,
-            'invited_by' => $admin->id,
-            'email' => $validated['email'],
-            'role' => $validated['role'],
-            'token' => Str::random(64),
-            'expires_at' => now()->addDays(7),
-        ]);
-
-        $invitationUrl = route('invitations.accept', [
-            'token' => $invitation->token,
-        ]);
-
-        return redirect()
-            ->route('admin.dashboard')
-            ->with('success', 'Team invitation created successfully.')
-            ->with('invitation_url', $invitationUrl);
     }
 }

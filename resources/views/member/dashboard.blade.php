@@ -29,9 +29,9 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2>Member's Dashboard</h2>
-                <p class="text-muted mb-0">
+                <h3 class="text-muted mb-0">
                     {{ auth()->user()->name}}
-                </p>
+                </h3>
             </div>
 
             <form action="{{ route('logout') }}" method="POST">
@@ -53,8 +53,8 @@
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Original URL</th>
                         <th>Short URL</th>
+                        <th>Original URL</th>
                         <th>Hits</th>
                         <th>Created At</th>
                     </tr>
@@ -63,20 +63,15 @@
                 <tbody>
                     @forelse($shortUrls as $index => $url)
                         <tr>
-                            <td>{{ $index + 1 }}</td>
-
-                            <td>
-                                <a href="{{ $url->original_url }}"
-                                   target="_blank">
-                                    {{ $url->original_url }}
-                                </a>
-                            </td>
-
+                            <td>{{ $index + 1 }}</td>                            
                             <td>
                                 <a href="{{ route('urls.redirect', $url->short_code) }}"
-                                   target="_blank">
+                                    target="_blank">
                                     {{ route('urls.redirect', $url->short_code) }}
                                 </a>
+                            </td>
+                            <td>
+                                {{ $url->original_url }}
                             </td>
 
                             <td>{{ $url->hits ?? 0 }}</td>

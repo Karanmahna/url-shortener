@@ -11,13 +11,12 @@
 <body class="bg-light">
 
 <div class="container-fluid p-4">
-
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2>Client Admin Dashboard</h2>
-            <p class="text-muted mb-0">
+            <h3 class="text-muted mb-0">
                 {{ auth()->user()->name ?? 'Client' }}
-            </p>
+            </h3>
         </div>
 
         <form action="{{ route('logout') }}" method="POST">
@@ -54,39 +53,9 @@
                 value="{{ session('invitation_url') }}"
                 readonly
             >
-
-            <button
-                type="button"
-                class="btn btn-outline-primary"
-                onclick="navigator.clipboard.writeText(
-                    document.getElementById('teamInvitationLink').value
-                )"
-            >
-                Copy
-            </button>
         </div>
     </div>
 @endif
-    <div class="row mb-4">
-        <div class="col-md-6 mb-3">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="text-muted">Generated URLs</h6>
-                    <h3>{{ $totalUrls }}</h3>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 mb-3">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="text-muted">Team Members</h6>
-                    <h3>{{ $totalMembers }}</h3>
-                </div>
-            </div>
-        </div>
-    </div>
-
     {{-- Generated URLs --}}
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
@@ -105,7 +74,7 @@
                             <th>Short URL</th>
                             <th>Original URL</th>
                             <th>Total hits</th>
-                            <th>Created By</th>
+                            <th>User</th>
                             <th>Created On</th>
                         </tr>
                     </thead>
@@ -134,6 +103,12 @@
 
             {{ $shortUrls->links() }}
         </div>
+        <div class="card-footer d-flex">
+            <a href="{{ route('members/url') }}"
+                class="btn btn-outline-secondary btn-sm">
+                View All
+            </a>
+        </div>
     </div>
 
     {{-- Team Members --}}
@@ -142,7 +117,7 @@
             <h5 class="mb-0">Team Members</h5>
 
             <div>
-                <a href="{{ route('admin.team.index') }}"
+                <a href="{{ route('members') }}"
                    class="btn btn-outline-secondary btn-sm">
                     View All
                 </a>
